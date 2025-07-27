@@ -1,1 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrackDash: Endless Runner</title>
+  <style>
+    * { 
+        box-sizing: border-box; 
+        margin: 0; 
+        padding: 0; 
+        font-family: 'Segoe UI', sans-serif; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #1e1e2f;
+      color: white;
+    }
+    canvas { 
+        display: block; 
+        width: 100%; 
+        height: 100%; }
+    #game-container 
+    { 
+        position: relative; 
+        width: 100%; 
+        height: 100vh; 
+        overflow: hidden; }
 
+    .parallax {
+      position: absolute; 
+      width: 100%; 
+      height: 100%;
+      z-index: 0; 
+      background-repeat: repeat-x; 
+      animation: scrollBackground linear infinite;
+    }
+    .bg1 { background-image: url('https://via.placeholder.com/800x600/1e1e2f/ffffff?text=Background+1'); 
+    background-size: cover; 
+    opacity: 0.4; 
+    animation-duration: 60s; }
+    .bg2 { 
+        background-image: url('https://via.placeholder.com/800x600/1e1e2f/ffffff?text=Background+2'); 
+        background-size: cover; 
+        opacity: 0.6; 
+        animation-duration: 40s; }
+    .bg3 { background-image: url('https://via.placeholder.com/800x600/1e1e2f/ffffff?text=Background+3'); 
+    background-size: cover; 
+    opacity: 1; 
+    animation-duration: 20s; }
+    @keyframes scrollBackground { 0% { background-position: 0 0; } 100% { background-position: -1000px 0; } }
+
+    #scoreBoard {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      z-index: 2; font-size: 16px; background: rgba(0,0,0,0.5);
+      padding: 8px 16px; border-radius: 10px; display: none; white-space: pre-wrap; text-align: center;
+    }
+
+    #muteBtn {
+      position: absolute; top: 10px; right: 10px; z-index: 4;
+      font-size: 20px; background: rgba(0,0,0,0.5);
+      padding: 6px 10px; border-radius: 8px; border: none; color: white; cursor: pointer;
+    }
+    #muteBtn:hover { background: rgba(255,255,255,0.15); }
+
+    #startMenu {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 5; background: rgba(0,0,0,0.7); padding: 40px 30px;
+      border-radius: 15px; text-align: center; max-width: 90%;
+    }
+    #startMenu h1 { margin-bottom: 20px; font-size: 32px; color: #00FFAA; }
+    .btn {
+      padding: 12px 24px; border: none; border-radius: 8px; color: white;
+      cursor: pointer; font-size: 18px; margin-top: 10px; display: inline-block;
+    }
+    #startBtn { background: #28a745; }
+    #startBtn:hover { background: #218838; }
+    #shopBtn { background: #007bff; margin-left: 10px; }
+    #shopBtn:hover { background: #0069d9; }
+    #instructions {
+      margin-top: 15px; font-size: 14px; color: #ccc; line-height: 1.5;
+      text-align: left; max-width: 450px; margin-inline: auto;
+    }
+
+    #countdown {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 80px; font-weight: bold; color: #00FFAA; z-index: 10; display: none;
+    }
+
+    #gameOverPanel {
+      display: none; position: absolute; z-index: 3; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); background: rgba(0,0,0,0.85);
+      padding: 30px; border-radius: 15px; text-align: center; max-width: 90%;
+    }
+    #gameOverPanel h2 { margin-bottom: 10px; }
+    #restartBtn {
+      padding: 10px 20px; background: #28a745; border: none; border-radius: 8px;
+      color: white; cursor: pointer; font-size: 16px; margin-top: 10px;
+    }
+    #restartBtn:hover { background: #218838; }
+
+    #shopPanel {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 6; background: rgba(0,0,0,0.9); padding: 30px 20px; border-radius: 15px;
+      text-align: center; width: min(420px, 90%); max-height: 80vh; overflow-y: auto; display: none;
+    }
+    #shopPanel h2 { margin-bottom: 10px; color: #ffd700; }
+    #wallet { margin-bottom: 16px; font-weight: bold; }
+    .skinCard {
+      background: rgba(255,255,255,0.05); padding: 12px 10px; border-radius: 10px;
+      margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .skinLeft { display: flex; align-items: center; gap: 10px; text-align: left; }
+    .skinColor {
+      width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; flex: 0 0 auto;
+    }
+    .skinName { font-weight: bold; font-size: 14px; }
+    .skinCost { font-size: 12px; opacity: 0.8; }
+    .skinBtn {
+      padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer;
+      color: white; font-size: 13px; flex: 0 0 auto;
+    }
+    .buyBtn { background: #28a745; }
+    .buyBtn:disabled { background: #6c757d; cursor: not-allowed; }
+    .equipBtn { background: #007bff; }
+    .equipBtn:disabled { background: #6c757d; cursor: not-allowed; }
+    #closeShopBtn {
+      margin-top: 12px; background: #dc3545; border: none; border-radius: 8px; color: #fff;
+      cursor: pointer; padding: 8px 14px; font-size: 14px;
+    }
+    #closeShopBtn:hover { background: #c82333; }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div class="parallax bg1"></div>
+    <div class="parallax bg2"></div>
+    <div class="parallax bg3"></div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD -->
+    <div id="scoreBoard">Score: 0 | Coins: 0 | High Score: 0</div>
+    <button id="muteBtn">🔊</button>
+
+    <!-- Start Menu -->
+    <div id="startMenu">
+      <h1>TrackDash</h1>
+      <div>
+        <button id="startBtn" class="btn">Start Game</button>
+        <button id="shopBtn" class="btn">Shop</button>
+      </div>
+      <div id="instructions">
+        <b>How to Play</b><br/>
+        • Desktop: Arrow Keys / A, D to change lanes.<br/>
+        • Mobile: Swipe left/right.<br/>
+        • Collect <b>coins</b>, avoid <b>obstacles</b>.<br/>
+        • Power-ups: <b>Shield</b> (one-hit), <b>Magnet</b> (pulls coins).<br/>
+        • Chain coins to increase your <b>multiplier</b>.<br/>
+        • Spend coins in the <b>Shop</b> to buy skins!
+      </div>
+    </div>
+
+    <!-- Countdown -->
+    <div id="countdown">3</div>
+
+    <!-- Game Over -->
+    <div id="gameOverPanel">
+      <h2>Game Over!</h2>
+      <p id="finalScore">Score: 0</p>
+      <p id="finalCoins">Coins (this run): 0</p>
+      <p id="walletCoins">Wallet (total): 0</p>
+      <p id="bestScore">High Score: 0</p>
+      <button id="restartBtn">Play Again</button>
+    </div>
+
+    <!-- Shop -->
+    <div id="shopPanel">
+      <h2>Shop</h2>
+      <p id="wallet">Your Coins: 0</p>
+      <div id="skinsList"></div>
+      <button id="closeShopBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Audio -->
+  <audio id="bgm" src="https://cdn.pixabay.com/download/audio/2022/10/12/audio_4c7d44fabc.mp3?filename=upbeat-background-music-120bpm-12236.mp3" loop></audio>
+  <audio id="coinSfx" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5e5b9e504f.mp3?filename=coin-collect-87874.mp3"></audio>
+  <audio id="powerupSfx" src="https://cdn.pixabay.com/download/audio/2022/01/18/audio_20408b7dd9.mp3?filename=bonus-collect-73848.mp3"></audio>
+  <audio id="gameOverSfx" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_897983f0a7.mp3?filename=game-over-arcade-6435.mp3"></audio>
+
+  <script>
+    /********* Canvas & DOM *********/
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const startMenu = document.getElementById('startMenu');
+    const startBtn = document.getElementById('startBtn');
+    const shopBtn = document.getElementById('shopBtn');
+
+    const scoreBoard = document.getElementById('scoreBoard');
+    const countdownEl = document.getElementById('countdown');
+    const gameOverPanel = document.getElementById('gameOverPanel');
+    const finalScoreEl = document.getElementById('finalScore');
+    const finalCoinsEl = document.getElementById('finalCoins');
+    const walletCoinsEl = document.getElementById('walletCoins');
+    const bestScoreEl = document.getElementById('bestScore');
+    const restartBtn = document.getElementById('restartBtn');
+
+    const shopPanel = document.getElementById('shopPanel');
+    const walletEl = document.getElementById('wallet');
+    const skinsListEl = document.getElementById('skinsList');
+    const closeShopBtn = document.getElementById('closeShopBtn');
+
+    const muteBtn = document.getElementById('muteBtn');
+    const bgm = document.getElementById('bgm');
+    const coinSfx = document.getElementById('coinSfx');
+    const powerupSfx = document.getElementById('powerupSfx');
+    const gameOverSfx = document.getElementById('gameOverSfx');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    /********* Audio Control *********/
+    let isMuted = false;
+    bgm.volume = 0.3;
+    coinSfx.volume = 0.7;
+    powerupSfx.volume = 0.7;
+    gameOverSfx.volume = 0.7;
+
+    function setMuted(m) {
+      isMuted = m;
+      [bgm, coinSfx, powerupSfx, gameOverSfx].forEach(a => a.muted = isMuted);
+      muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    }
+    setMuted(false);
+
+    muteBtn.addEventListener('click', () => setMuted(!isMuted));
+    function play(sound) { if (!isMuted) { sound.currentTime = 0; sound.play().catch(()=>{}); } }
+
+    /********* Persistent Data *********/
+    const STORAGE_KEYS = {
+      HIGH_SCORE: 'trackdashHighScore',
+      TOTAL_COINS: 'trackdashTotalCoins',
+      PURCHASED_SKINS: 'trackdashPurchasedSkins',
+      SELECTED_SKIN: 'trackdashSelectedSkin'
+    };
+
+    const SKINS = [
+      { id: 'default', name: 'Default', color: '#00FFAA', cost: 0 },
+      { id: 'red',     name: 'Crimson Runner', color: '#FF4C4C', cost: 100 },
+      { id: 'gold',    name: 'Golden Dash',    color: '#FFD700', cost: 250 },
+      { id: 'violet',  name: 'Violet Velocity', color: '#B56BFF', cost: 400 }
+    ];
+
+    let highScore = Number(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE)) || 0;
+    let totalCoins = Number(localStorage.getItem(STORAGE_KEYS.TOTAL_COINS)) || 0;
+    let purchasedSkins = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASED_SKINS) || '["default"]');
+    let selectedSkin = localStorage.getItem(STORAGE_KEYS.SELECTED_SKIN) || 'default';
+
+    function savePersistent() {
+      localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, String(highScore));
+      localStorage.setItem(STORAGE_KEYS.TOTAL_COINS, String(totalCoins));
+      localStorage.setItem(STORAGE_KEYS.PURCHASED_SKINS, JSON.stringify(purchasedSkins));
+      localStorage.setItem(STORAGE_KEYS.SELECTED_SKIN, selectedSkin);
+    }
+
+    /********* Game State *********/
+    let lanes = [];
+    const laneWidth = 120;
+
+    let score = 0;
+    let coinsCollected = 0;
+
+    let speed = 4;
+    let isGameOver = false;
+    let isGameStarted = false;
+
+    let spawnTimer = 0;
+    let coinSpawnTimer = 0;
+    let powerupSpawnTimer = 0;
+    let countdown = 3;
+
+    const obstacles = [];
+    const coins = [];
+    const powerups = [];
+
+    // Power-ups
+    let shieldActive = false;
+    let magnetActive = false;
+    let magnetTimer = 0;
+    const MAGNET_DURATION_FRAMES = 60 * 6;
+    const MAGNET_RADIUS = 250;
+
+    // Combo / multiplier
+    let comboCount = 0;
+    let comboTimer = 0;
+    const COMBO_TIMER_MAX = 60 * 2;
+    const MAX_MULTIPLIER = 5;
+    function getMultiplier() {
+      const mult = 1 + Math.floor(comboCount / 5);
+      return Math.min(mult, MAX_MULTIPLIER);
+    }
+
+    function calculateLanes() {
+      const center = canvas.width / 2;
+      lanes = [center - laneWidth, center, center + laneWidth];
+    }
+    calculateLanes();
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      calculateLanes();
+      player.y = canvas.height - 120;
+      player.targetX = lanes[player.lane] - player.width / 2;
+    });
+
+    /********* Player *********/
+    const player = {
+      x: 0, y: canvas.height - 120, width: 40, height: 60,
+      lane: 1, targetX: 0, color: getSkinColor(selectedSkin)
+    };
+    player.x = (lanes[player.lane] || canvas.width / 2) - player.width / 2;
+    player.targetX = player.x;
+
+    function getSkinColor(id) {
+      const skin = SKINS.find(s => s.id === id) || SKINS[0];
+      return skin.color;
+    }
+    function applySelectedSkin() { player.color = getSkinColor(selectedSkin); }
+
+    /********* Draw *********/
+    function drawPlayer() {
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+      if (shieldActive) {
+        ctx.strokeStyle = '#00FFFF';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(player.x - 4, player.y - 4, player.width + 8, player.height + 8);
+      }
+    }
+    function drawObstacles() {
+      ctx.fillStyle = "#FF4C4C";
+      for (let o of obstacles) ctx.fillRect(o.x, o.y, o.width, o.height);
+    }
+    function drawCoins() {
+      ctx.fillStyle = "#FFD700";
+      for (let c of coins) {
+        ctx.beginPath();
+        ctx.arc(c.x + c.size / 2, c.y + c.size / 2, c.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    function drawPowerups() {
+      for (let p of powerups) {
+        if (p.type === 'shield') ctx.fillStyle = '#00FFFF';
+        else if (p.type === 'magnet') ctx.fillStyle = '#FF00FF';
+        ctx.beginPath();
+        ctx.arc(p.x + p.size / 2, p.y + p.size / 2, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    /********* Spawns *********/
+    function spawnObstacle() {
+      const type = Math.random() < 0.7 ? "stone" : "train";
+      const lane = Math.floor(Math.random() * 3);
+      const width = 40;
+      const height = type === "stone" ? 30 : 60;
+      const x = lanes[lane] - width / 2;
+      obstacles.push({ x, y: -height, width, height, lane });
+    }
+    function spawnCoin() {
+      const lane = Math.floor(Math.random() * 3);
+      const size = 24;
+      const x = lanes[lane] - size / 2;
+      coins.push({ x, y: -size, size, lane });
+    }
+    function spawnPowerup() {
+      const lane = Math.floor(Math.random() * 3);
+      const types = ['shield', 'magnet'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const size = 28;
+      const x = lanes[lane] - size / 2;
+      powerups.push({ x, y: -size, size, lane, type });
+    }
+
+    /********* Update *********/
+    function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+      return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+    }
+
+    function updateObstacles() {
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const o = obstacles[i];
+        o.y += speed;
+        if (o.y > canvas.height) {
+          obstacles.splice(i, 1);
+          continue;
+        }
+        if (rectsOverlap(player.x, player.y, player.width, player.height, o.x, o.y, o.width, o.height)) {
+          if (shieldActive) {
+            shieldActive = false;
+            obstacles.splice(i, 1);
+          } else {
+            gameOver();
+            return;
+          }
+        }
+      }
+    }
+
+    function updateCoins() {
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        if (magnetActive) {
+          const dx = (player.x + player.width/2) - (c.x + c.size/2);
+          const dy = (player.y + player.height/2) - (c.y + c.size/2);
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < MAGNET_RADIUS) {
+            c.x += dx * 0.15;
+            c.y += dy * 0.15;
+          } else {
+            c.y += speed * 0.9;
+          }
+        } else {
+          c.y += speed * 0.9;
+        }
+
+        if (c.y > canvas.height) {
+          coins.splice(i, 1);
+          continue;
+        }
+
+        if (rectsOverlap(player.x, player.y, player.width, player.height, c.x, c.y, c.size, c.size)) {
+          coins.splice(i, 1);
+          coinsCollected++;
+          comboCount++;
+          comboTimer = COMBO_TIMER_MAX;
+
+          const mult = getMultiplier();
+          score += 50 * mult;
+          play(coinSfx);
+        }
+      }
+    }
+
+    function updatePowerups() {
+      for (let i = powerups.length - 1; i >= 0; i--) {
+        const p = powerups[i];
+        p.y += speed * 0.95;
+        if (p.y > canvas.height) {
+          powerups.splice(i, 1);
+          continue;
+        }
+        if (rectsOverlap(player.x, player.y, player.width, player.height, p.x, p.y, p.size, p.size)) {
+          if (p.type === 'shield') {
+            shieldActive = true;
+          } else if (p.type === 'magnet') {
+            magnetActive = true;
+            magnetTimer = MAGNET_DURATION_FRAMES;
+          }
+          play(powerupSfx);
+          powerups.splice(i, 1);
+        }
+      }
+
+      if (magnetActive) {
+        magnetTimer--;
+        if (magnetTimer <= 0) {
+          magnetActive = false;
+          magnetTimer = 0;
+        }
+      }
+    }
+
+    function update() {
+      if (Math.abs(player.x - player.targetX) > 1) {
+        player.x += (player.targetX - player.x) * 0.2;
+      } else {
+        player.x = player.targetX;
+      }
+
+      spawnTimer++;
+      if (spawnTimer > 50) { spawnObstacle(); spawnTimer = 0; }
+
+      coinSpawnTimer++;
+      if (coinSpawnTimer > 70) { spawnCoin(); coinSpawnTimer = 0; }
+
+      powerupSpawnTimer++;
+      if (powerupSpawnTimer > 600 && Math.random() < 0.6) { spawnPowerup(); powerupSpawnTimer = 0; }
+
+      score++;
+      speed += 0.002;
+
+      if (comboTimer > 0) {
+        comboTimer--;
+        if (comboTimer <= 0) comboCount = 0;
+      }
+
+      updateObstacles();
+      if (isGameOver) return;
+      updateCoins();
+      updatePowerups();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlayer();
+      drawObstacles();
+      drawCoins();
+      drawPowerups();
+    }
+
+    function loop() {
+      if (isGameOver || !isGameStarted) return;
+      update();
+      if (!isGameOver) draw();
+
+      const mult = getMultiplier();
+      const shieldText = shieldActive ? ' | Shield: ON' : '';
+      const magnetText = magnetActive ? ` | Magnet: ${Math.ceil(magnetTimer/60)}s` : '';
+      const comboText = mult > 1 ? ` | Multiplier: x${mult}` : '';
+      scoreBoard.textContent =
+        `Score: ${score} | Coins: ${coinsCollected}${comboText}${shieldText}${magnetText} | High Score: ${highScore}`;
+
+      requestAnimationFrame(loop);
+    }
+
+    /********* Game Flow *********/
+    function gameOver() {
+      isGameOver = true;
+      scoreBoard.style.display = "none";
+      play(gameOverSfx);
+
+      if (score > highScore) highScore = score;
+
+      totalCoins += coinsCollected;
+      savePersistent();
+
+      finalScoreEl.textContent = `Score: ${score}`;
+      finalCoinsEl.textContent = `Coins (this run): ${coinsCollected}`;
+      walletCoinsEl.textContent = `Wallet (total): ${totalCoins}`;
+      bestScoreEl.textContent = `High Score: ${highScore}`;
+      gameOverPanel.style.display = "block";
+    }
+
+    function resetGame() {
+      obstacles.length = 0;
+      coins.length = 0;
+      powerups.length = 0;
+
+      score = 0;
+      coinsCollected = 0;
+      speed = 4;
+      spawnTimer = 0;
+      coinSpawnTimer = 0;
+      powerupSpawnTimer = 0;
+
+      isGameOver = false;
+      isGameStarted = false;
+      countdown = 3;
+
+      comboCount = 0;
+      comboTimer = 0;
+
+      shieldActive = false;
+      magnetActive = false;
+      magnetTimer = 0;
+
+      player.lane = 1;
+      player.y = canvas.height - 120;
+      player.x = lanes[player.lane] - player.width / 2;
+      player.targetX = player.x;
+
+      applySelectedSkin();
+    }
+
+    function startCountdown() {
+      countdownEl.style.display = "block";
+      // Play BGM only after user interaction (autoplay policy)
+      bgm.play().catch(()=>{});
+      let interval = setInterval(() => {
+        countdownEl.textContent = countdown > 0 ? countdown : "GO!";
+        countdown--;
+        if (countdown < -1) {
+          clearInterval(interval);
+          countdownEl.style.display = "none";
+          isGameStarted = true;
+          scoreBoard.style.display = "block";
+          loop();
+        }
+      }, 1000);
+    }
+
+    /********* Input *********/
+    document.addEventListener("keydown", (e) => {
+      if (isGameOver || !isGameStarted) return;
+      if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+        if (player.lane > 0) player.lane--;
+      } else if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+        if (player.lane < 2) player.lane++;
+      }
+      player.targetX = lanes[player.lane] - player.width / 2;
+    });
+
+    let touchStartX = 0;
+    document.addEventListener("touchstart", (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    });
+    document.addEventListener("touchend", (e) => {
+      if (!isGameStarted || isGameOver) return;
+      const deltaX = e.changedTouches[0].screenX - touchStartX;
+      if (deltaX < -30 && player.lane > 0) player.lane--;
+      if (deltaX > 30 && player.lane < 2) player.lane++;
+      player.targetX = lanes[player.lane] - player.width / 2;
+    });
+
+    /********* Shop *********/
+    function openShop() {
+      renderShop();
+      shopPanel.style.display = 'block';
+      walletEl.textContent = `Your Coins: ${totalCoins}`;
+    }
+    function closeShop() {
+      shopPanel.style.display = 'none';
+      applySelectedSkin();
+    }
+    function renderShop() {
+      skinsListEl.innerHTML = '';
+      walletEl.textContent = `Your Coins: ${totalCoins}`;
+
+      SKINS.forEach(skin => {
+        const owned = purchasedSkins.includes(skin.id);
+        const equipped = selectedSkin === skin.id;
+
+        const card = document.createElement('div');
+        card.className = 'skinCard';
+
+        const left = document.createElement('div');
+        left.className = 'skinLeft';
+
+        const colorDot = document.createElement('div');
+        colorDot.className = 'skinColor';
+        colorDot.style.background = skin.color;
+
+        const textWrap = document.createElement('div');
+        const nameEl = document.createElement('div');
+        nameEl.className = 'skinName';
+        nameEl.textContent = skin.name;
+
+        const costEl = document.createElement('div');
+        costEl.className = 'skinCost';
+        costEl.textContent = skin.cost === 0 ? 'Owned' : `${skin.cost} coins`;
+
+        textWrap.appendChild(nameEl);
+        textWrap.appendChild(costEl);
+
+        left.appendChild(colorDot);
+        left.appendChild(textWrap);
+
+        const rightBtn = document.createElement('button');
+        rightBtn.className = 'skinBtn';
+
+        if (!owned) {
+          rightBtn.classList.add('buyBtn');
+          rightBtn.textContent = 'Buy';
+          rightBtn.disabled = (totalCoins < skin.cost);
+          rightBtn.onclick = () => {
+            if (totalCoins >= skin.cost) {
+              totalCoins -= skin.cost;
+              purchasedSkins.push(skin.id);
+              savePersistent();
+              renderShop();
+            }
+          };
+        } else {
+          rightBtn.classList.add('equipBtn');
+          rightBtn.textContent = equipped ? 'Equipped' : 'Equip';
+          rightBtn.disabled = equipped;
+          rightBtn.onclick = () => {
+            selectedSkin = skin.id;
+            savePersistent();
+            renderShop();
+          };
+        }
+
+        card.appendChild(left);
+        card.appendChild(rightBtn);
+        skinsListEl.appendChild(card);
+      });
+    }
+
+    /********* Buttons *********/
+    startBtn.addEventListener("click", () => {
+      startMenu.style.display = "none";
+      resetGame();
+      startCountdown();
+    });
+
+    restartBtn.addEventListener("click", () => {
+      gameOverPanel.style.display = "none";
+      resetGame();
+      startCountdown();
+    });
+
+    shopBtn.addEventListener("click", openShop);
+    closeShopBtn.addEventListener("click", closeShop);
+  </script>
+</body>
+</html>
