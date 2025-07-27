@@ -1,6 +1,8 @@
 # TrackDash: Endless Runner
 
-TrackDash is a browser-based endless runner game developed using HTML5 Canvas, JavaScript, and CSS. The player dodges obstacles, collects coins, and tries to achieve the highest score. The game is responsive, works on both desktop and mobile devices, and includes features like power-ups, a coin-based shop, combo multipliers, and integrated audio.
+- TrackDash is a browser-based endless runner game developed using HTML5 Canvas, JavaScript, and CSS. 
+- The player dodges obstacles, collects coins, and tries to achieve the highest score. 
+- The game is responsive, works on both desktop and mobile devices, and includes features like power-ups, a coin-based shop, combo multipliers, and integrated audio.
 
 ## Features
 
